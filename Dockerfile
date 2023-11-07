@@ -24,18 +24,15 @@ RUN INTERACTIVE=false CI=true MB_EDITION=$MB_EDITION bin/build.sh
 # # STAGE 2: runner
 # ###################
 
-## Remember that this runner image needs to be the same as bin/docker/Dockerfile with the exception that this one grabs the
-## jar from the previous stage rather than the local build
-## we're not yet there to provide an ARM runner till https://github.com/adoptium/adoptium/issues/96 is ready
-
-FROM --platform=linux/amd64 eclipse-temurin:11-jre-alpine as runner
+FROM eclipse-temurin:11-jre-jammy as runner
 
 ENV FC_LANG en-US LC_CTYPE en_US.UTF-8
 
 # dependencies
-RUN apk add -U bash ttf-dejavu fontconfig curl java-cacerts && \
-    apk upgrade && \
-    rm -rf /var/cache/apk/* && \
+RUN apt update && apt install -y curl ca-certificates-java && \
+    apt upgrade -y && \
+    apt-get clean && \
+    find /var/lib/apt/lists -maxdepth 1 -mindepth 1 -print0 | xargs -r0 rm -rf && \
     mkdir -p /app/certs && \
     curl https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem -o /app/certs/rds-combined-ca-bundle.pem  && \
     /opt/java/openjdk/bin/keytool -noprompt -import -trustcacerts -alias aws-rds -file /app/certs/rds-combined-ca-bundle.pem -keystore /etc/ssl/certs/java/cacerts -keypass changeit -storepass changeit && \
